@@ -1,0 +1,199 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-latch-actions:
+    name: Workflow
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout Repository
+      uses: actions/checkout@master
+
+    - name: Code Review
+      id: fmt
+      uses: kitabisa/sonarqube-action@master
+      with:
+        host: ${{ secrets.SONARQUBE_HOST }}
+        login: ${{ secrets.SONARQUBE_TOKEN }}
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Configure Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        terraform_version: 1.3.0
+
+    - name: Terraform init
+      run: terraform init
+
+    - name: Terraform Validate
+      id: validate
+      run: terraform validate -no-color      
+
+    - name: Terraform plan
+      id: plan
+      run: terraform plan -no-color        
+        
+    - name: Integration Test
+      id: test
+      run: |
+        echo "Terratest"
+
+    - name: Terraform apply
+      if: github.ref == 'refs/heads/main'
+      id: apply
+      run: terraform apply -no-color         
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image Inventory to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: docker_inventory
+        IMAGE_TAG: inventory_demo_image
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG /docker/inventory/.
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Build, tag, and push image Accounting to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: accounting
+        IMAGE_TAG: naccounting_demo_image
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG /docker/accounting/.
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Build, tag, and push image Shipping to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: accounting
+        IMAGE_TAG: naccounting_demo_image
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG /docker/shipping/.
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+    - name: Build, tag, and push image Shippping to Amazon ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: shipping
+        IMAGE_TAG: shipping_demo_image
+      run: |
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+
+    - name: Deploy to Amazon ECS Shipping Service
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        service: my-service
+        cluster: my-cluster
+        wait-for-service-stability: true
+
+    - name: Deploy to Amazon ECS Accounting Service
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        service: my-service
+        cluster: my-cluster
+        wait-for-service-stability: true
+
+    - name: Deploy to Amazon ECS Inventory Service
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        service: my-service
+        cluster: my-cluster
+        wait-for-service-stability: true
+
+    - name: Comment on PR
+      uses: actions/github-script@0.9.0
+      if: github.event_name == 'pull_request'
+      env:
+        format_out: ${{ steps.fmt.outputs.stdout }}
+        format_err: ${{ steps.fmt.outputs.stderr }}
+        init_out: ${{ steps.init.outputs.stdout }}
+        init_err: ${{ steps.init.outputs.stderr }}
+        validate_out: ${{ steps.validate.outputs.stdout }}
+        validate_err: ${{ steps.validate.outputs.stderr }}
+        plan: "${{ steps.plan.outputs.stdout }}"
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const CODE_BLOCK = '```';
+          const fmt_result = '${{ steps.fmt.outcome }}' === 'failure' ? ':x:' : ':heavy_check_mark:';
+          const init_result = '${{ steps.init.outcome }}' === 'failure' ? ':x:' : ':heavy_check_mark:';
+          const validate_result = '${{ steps.validate.outcome }}' === 'failure' ? ':x:' : ':heavy_check_mark:';
+          const plan_result = '${{ steps.plan.outcome }}' === 'failure' ? ':x:' : ':heavy_check_mark:';
+          const output = `
+          ### ${ fmt_result } Format and Style 🎨
+          <details><summary>Logs</summary>
+          Output
+          ${ CODE_BLOCK }diff
+          ${ process.env.format_out }
+          ${ CODE_BLOCK }
+          Errors
+          ${ CODE_BLOCK }
+          ${ process.env.format_err }
+          ${ CODE_BLOCK }
+          </details> <!-- End Format Logs -->
+          ### ${ init_result } Initialization ⚙️
+          <details><summary>Logs</summary>
+          Output
+          ${ CODE_BLOCK }
+          ${ process.env.init_out }
+          ${ CODE_BLOCK }
+          Errors
+          ${ CODE_BLOCK }
+          ${ process.env.init_err }
+          ${ CODE_BLOCK }
+          </details> <!-- End Init Logs -->
+          ### ${ validate_result } Validation 🤖
+          <details><summary>Logs</summary>
+          Output
+          ${ CODE_BLOCK }
+          ${ process.env.validate_out }
+          ${ CODE_BLOCK }
+          Errors
+          ${ CODE_BLOCK }
+          ${ process.env.validate_err }
+          ${ CODE_BLOCK }
+          </details> <!-- End Validate Logs -->
+          ### ${ plan_result } Plan 📖
+          <details><summary>Logs</summary>
+          ${ CODE_BLOCK }
+          ${ process.env.plan }
+          ${ CODE_BLOCK }
+          </details>
+          
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+          
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+          
+    - name: 'End results'
+      shell: bash
+      run: |
+        echo fmt
+        test ${{ steps.fmt.outputs.exitcode }} -eq 0 || true
+        echo init
+        test ${{ steps.init.outputs.exitcode }} -eq 0 || true
+        echo validate
+        test ${{ steps.validate.outputs.exitcode }} -eq 0 || true

@@ -21,7 +21,8 @@ Architectural / Devops design test
 
 <summary><b>Test Details</b></summary>
 <details>
-`
+```
+
 Infrastructure / DevOps System Design
 Interview @ Latch
 Goal
@@ -29,12 +30,14 @@ Given the starting architecture below, address the following infrastructure requ
 The idea is to have a technical conversation where you can take the lead and show how you
 break down requirements and how you think about these items, what lessons you have learned
 in your career, etc.
+
 Please prepare the exercise prior to the day of the interview. We expect you to be able to lead
 the conversation and guide us through your suggested solution.
 The architecture reflects a few of the concepts we discussed in our initial interview. We will work
 with a FigJam board with this same diagram so you can easily add infrastructure components
 and notes. Please use the tool before our conversation so you can express your ideas with it
 easily.
+
 Requirements
 ● The system will be hosted in AWS.
 ● We need the ability to scale the system to deal with zillions of requests per day.
@@ -47,7 +50,7 @@ the team.
 environment in order to be able to troubleshoot issues.
 ● Disaster recovery: if an AWS region goes down, a database change goes wrong, etc.
 we have to have ways to recover from these potential critical issues.
-`
+```
 
 
 </details>
@@ -57,7 +60,7 @@ we have to have ways to recover from these potential critical issues.
 
 La siguiente es ***una propuesta***. Por lo tanto, la infraestructura puede tener los recursos necesarios y la correlación entre ellos, pero de ninguna manera está lista para su uso. Funciona hasta cierto punto. 
 
-Se comprende por un UI estatica bsasada en Cloudfront para el cache y S3 Bucket Y 3 backend en 2 AZ basados en ECS + EC2 
+Se comprende de un APi Gateway como Faccade pattern, con un Lambda Authorizer para authenticar los request Y servicios backend en 2 AZ basados en ECS + EC2, mas una Subnet para Data de RDS
 
 Todo a ser aplicado con Github Actions
 
@@ -67,8 +70,8 @@ Todo a ser aplicado con Github Actions
 
 La solución propuesta realiza las siguientes acciones.
 ```
-1. El usuario final consumirá la UI mediante un DNS de cloudfront+s3.
-2. ALB redijira al ECS con Backend en Java/Docker
+1. El usuario final consumirá los endpoint mediante un ApiGateway con alta disponibilidad con cloudfront.
+2. ALB redijira al ECS con Backend
 3. RDS suminitrara la informacion al Backend.
 ```
 
@@ -1412,14 +1415,19 @@ Consideraremos las siguientes métricas.
 * Latencia
 * Fexibilidad
 ```
+
+
+
 ## Monitoreo y alertas
 
-Usaremos Cloudwatch para monitorear Cloudfront y ECS Metrics
+Usaremos Cloudwatch para monitorear Cloudfront y ECS Metrics *utilizando las 4 Golden Signals
 
-Key metrics para monitoreo Cloudwatch
+Key metrics para monitoreo Cloudwatch de Api Gateway
 ```
-1. aws.cloudfront.cache_hit_rate	
-2. aws.cloudfront.origin_latency	
+Latency
+4XX Error
+5XX Error
+Saturation
 ```
 Key metrics para monitoreo ECS+EC2
 ```
@@ -1429,6 +1437,7 @@ Key metrics para monitoreo ECS+EC2
 4. CPU
 5. Memory
 ```
+
 ## Automatización CICD
 
 ![texto alternativo](/images/cicd.png "CICD")
@@ -1449,7 +1458,7 @@ Toda la autenticación de la infraestructura está controlada por los roles de I
 
 Usaremos el principio de Least Priviledge
 ```
-1. Crearemos roles de IAM específicos para Lambda para acceder solo al recurso del depósito S3.
+1. Crearemos roles de IAM específicos para ApiGateway para acceder solo al recurso backend.
 2. El bucket S3 estará restringido y la ACL estará configurada como privada.
 3. Business Logic se implementará en la capa privada
 ```

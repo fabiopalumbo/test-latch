@@ -24,32 +24,32 @@ module "rds" {
   region    = "us-east-1"
 }
 
-module "ecs_inventory" {
+module "ecs_service_1" {
   source                = "./modules/ecs"
   ecs_cluster           = "my-cluster"
   ecs_capacity_provider = "my-capacity-provider"
-  image_uri             = "my-image-inventory"
-  task_definition_name  = "my-task-inventory"
-  docker_name           = "my-docker-inventory"
+  image_uri             = "my-image-service_1"
+  task_definition_name  = "my-task-service_1"
+  docker_name           = "my-docker-service_1"
   region                = "us-east-1"
 }
 
-module "ecs_accounting" {
+module "ecs_service_2" {
   source                = "./modules/ecs"
   ecs_cluster           = "my-cluster"
   ecs_capacity_provider = "my-capacity-provider"
-  image_uri             = "my-image-accounting"
-  task_definition_name  = "my-task-accounting"
-  docker_name           = "my-docker-accounting"
+  image_uri             = "my-image-service_2"
+  task_definition_name  = "my-task-service_2"
+  docker_name           = "my-docker-service_2"
   region                = "us-east-1"
 }
 
-module "ecs_shipping" {
+module "ecs_service_3" {
   source                = "./modules/ecs"
   ecs_cluster           = "my-cluster"
   ecs_capacity_provider = "my-capacity-provider"
-  image_uri             = "my-image-shipping"
-  task_definition_name  = "my-task-shipping"
-  docker_name           = "my-docker-shipping"
+  image_uri             = "my-image-service_3"
+  task_definition_name  = "my-task-service_3"
+  docker_name           = "my-docker-service_3"
   region                = "us-east-1"
 }

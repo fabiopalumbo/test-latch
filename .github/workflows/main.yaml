@@ -58,44 +58,44 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
 
-    - name: Build, tag, and push image Inventory to Amazon ECR
+    - name: Build, tag, and push image service_1 to Amazon ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: docker_inventory
-        IMAGE_TAG: inventory_demo_image
+        ECR_REPOSITORY: docker_service_1
+        IMAGE_TAG: service_1_demo_image
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG /docker/inventory/.
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG /docker/service_3/.
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Build, tag, and push image Accounting to Amazon ECR
+    - name: Build, tag, and push image service_2 to Amazon ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: accounting
-        IMAGE_TAG: naccounting_demo_image
+        ECR_REPOSITORY: service_2
+        IMAGE_TAG: service_2_demo_image
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG /docker/accounting/.
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG /docker/service_2/.
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-    - name: Build, tag, and push image Shipping to Amazon ECR
+    - name: Build, tag, and push image service_3 to Amazon ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: accounting
-        IMAGE_TAG: naccounting_demo_image
+        ECR_REPOSITORY: service_3
+        IMAGE_TAG: service_3_demo_image
       run: |
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG /docker/shipping/.
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG /docker/service_3/.
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
     - name: Build, tag, and push image Shippping to Amazon ECR
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: shipping
-        IMAGE_TAG: shipping_demo_image
+        ECR_REPOSITORY: service_3
+        IMAGE_TAG: service_3_demo_image
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
 
-    - name: Deploy to Amazon ECS Shipping Service
+    - name: Deploy to Amazon ECS service_3 Service
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: task-definition.json
@@ -103,7 +103,7 @@ jobs:
         cluster: my-cluster
         wait-for-service-stability: true
 
-    - name: Deploy to Amazon ECS Accounting Service
+    - name: Deploy to Amazon ECS service_2 Service
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: task-definition.json
@@ -111,7 +111,7 @@ jobs:
         cluster: my-cluster
         wait-for-service-stability: true
 
-    - name: Deploy to Amazon ECS Inventory Service
+    - name: Deploy to Amazon ECS service_3 Service
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: task-definition.json

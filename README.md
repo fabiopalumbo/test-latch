@@ -1442,7 +1442,7 @@ Key metrics para monitoreo ECS+EC2
 
 ![texto alternativo](/images/cicd.png "CICD")
 
-Usar una herramienta CI/CD (es decir, aGithub Actions)
+Usar una herramienta CI/CD (es decir Github Actions)
 ```
 1. El CICD revisará el Código mediante Sonarqube.
 2. El uso de las funciones de Terraform Github Actions ejecutará terraform fmt/validate/plan.
@@ -1459,9 +1459,20 @@ Toda la autenticación de la infraestructura está controlada por los roles de I
 Usaremos el principio de Least Priviledge
 ```
 1. Crearemos roles de IAM específicos para ApiGateway para acceder solo al recurso backend.
-2. El bucket S3 estará restringido y la ACL estará configurada como privada.
+2. El accesso a ECS estará restringido y las conexiones estará configurada como privada *solo con Nat Gateway).
 3. Business Logic se implementará en la capa privada
+4. RDS estara en una subnet aparte
 ```
+## Disaster Recovery
+Se estableceran los RTO y RPO del sistema.
+
+Se crearan los servicios en Multiples AZ, tanto RDS como ECS/Fargate y Api Gateway son altamente disponibles "out of the box", igualmente estaran disponibilizados en varias AZ
+
+Se realizara Cross-Region Replication.
+
+En lo que respecta a ECS, ECR (imagenes Docker) se replicaran en varias regiones. Para asegurar consistencia y facilitar el redespliegue post disaster
+
+Se protegera la Data en trnasito y en reposo. Esto incluye ECS, RDS y backups
 
 ## Informe de cálculo
 ![texto alternativo](/images/estimate.png "Estimación de precios de AWS")
